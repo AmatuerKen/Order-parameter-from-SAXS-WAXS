@@ -20,3 +20,7 @@ The procedure is:
    *run the bulk to process one or all the edf files in directory, order parameters and fitting parameters are saved in a csv file.
 
 Therefore, ideally functions_SAXS.py should be added to your PATH, and other notebooks should be in the same folder with the data folder, not the data files.
+
+If you find this code helpful to your work, please consider cite my other papers on x-ray scattering https://scholar.google.com/citations?user=hHUiOtMAAAAJ&hl=en
+
+Cheers!
