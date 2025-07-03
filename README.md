@@ -2,7 +2,6 @@
 
 These are python codes/notebooks to extract order parameters of liquid crystalline materials from 2D x-ray scattering pattern, either SAXS or WAXS depending on the geometry (q range). The raw data format (including metadata) is ESRF edf file to accommendate the DEXS equipment at UPenn LRSM. 
 
-The code only needs numpy and scipy packages. (Cheers!)
 
 The order parameter is extracted using Kratky model. The model, average limit, and baseline substraction are implemented based on this paper: https://doi.org/10.1080/02678292.2018.1455227
 
