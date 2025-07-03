@@ -17,6 +17,7 @@ The procedure is:
 
 5. Analysis: it extracts the average intensity in the mask and order parameters.
 
-   *the whole analysis can be packed up in one function to automate the calculation (in process).
+   *run the template to process one file as an example.
+   *run the bulk to process one or all the edf files in directory, order parameters and fitting parameters are saved in a csv file.
 
 Therefore, ideally functions_SAXS.py should be added to your PATH, and other notebooks should be in the same folder with the data folder, not the data files.
