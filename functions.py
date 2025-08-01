@@ -3,12 +3,13 @@ import matplotlib.pyplot as plt
 
 def read_esrf_edf_image(filename):
     # Parameters known from the header (you can also parse these dynamically if needed)
-    header_size = 2560
+    header_size = get_edf_header_size(filename)
     dim1, dim2 = 1004, 1066
     dtype = np.dtype('<f4')  # little-endian float32
 
     with open(filename, 'rb') as f:
         f.seek(header_size)
+        
         data = np.fromfile(f, dtype=dtype, count=dim1 * dim2)
         image = data.reshape((dim2, dim1))  # rows x cols
 
@@ -23,7 +24,20 @@ def show_image(image, cmap='gray', vmin=None, vmax=None):
     plt.ylabel('Y')
     plt.tight_layout()
     plt.show()
-    
+
+def get_edf_header_size(filename):
+    with open(filename, 'rb') as f:
+        header = b""
+        while True:
+            chunk = f.read(512)
+            header += chunk
+            if b'}\n' in chunk:
+                break
+        header_end = header.find(b'}\n') + 2
+        # Round up to the next multiple of 512
+        header_size = ((header_end + 511) // 512) * 512
+        return header_size
+
 def extract_edf_parameters(filename):
     """Extracts key metadata parameters from an ESRF-style EDF file header."""
     with open(filename, 'rb') as f:
