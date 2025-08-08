@@ -24,7 +24,7 @@ def read_esrf_edf_image(filename):
 
     return image
 
-def show_image(image, cmap='gray', vmin=None, vmax=None):
+def show_image(filename, image, cmap='gray', vmin=None, vmax=None):
     plt.figure(figsize=(8, 6))
     plt.imshow(image, cmap=cmap, origin='lower', vmin=vmin, vmax=vmax)
     plt.colorbar(label='Intensity')
@@ -136,15 +136,15 @@ def check_Qmap_center(image, params, Q, q_levels=[0.5, 1.0, 1.5], vmin=None, vma
     plt.imshow(image[yc - interval:yc + interval, xc - interval:xc + interval], cmap=cmap, origin='lower', vmin=vmin, vmax=vmax)
     contours = plt.contour(Q[yc - interval:yc + interval, xc - interval:xc + interval], levels=q_levels, colors='red')
     plt.clabel(contours, inline=True, fmt="q=%.1f Å⁻¹", fontsize=10)
-    plt.colorbar(label='Intensity')
+    #plt.colorbar(label='Intensity')
     plt.title('ESRF EDF Image')
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.tight_layout()
     plt.show()
 
-def save_Qmaps(Q, angle, Qx, Qy, output_file= "qmap_output.npz"):
-    np.savez(output_file, Q=Q, angle=angle, Qx=Qx, Qy=Qy)
+def save_Qmaps(Q, angle, Qx, Qy, xc, yc, output_file= "qmap_output.npz"):
+    np.savez(output_file, Q=Q, angle=angle, Qx=Qx, Qy=Qy, xc = xc, yc = yc)
 
 def load_Qmaps(filename):
     data = np.load(filename)
