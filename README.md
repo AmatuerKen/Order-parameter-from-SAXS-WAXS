@@ -6,15 +6,17 @@ These are python codes/notebooks to extract order parameters of liquid crystalli
 The order parameter is extracted using Kratky model. The model, average limit, and baseline substraction are implemented based on this paper: https://doi.org/10.1080/02678292.2018.1455227
 
 The procedure is:
+0. Save data as png images.
+
 1. Creating qmap: it creates a correpondence between indices (x,y) and (q and angle), or (qx and qy).
 
    *qmap only needs to be created once for all data collected from the same experimental setup (sample to detector distance, beam center, etc)
         
-3. Creating mask: it creates regions of interest for averaging intensity
+2. Creating mask: it creates regions of interest for averaging intensity
 
    *mask only needs to be created when different regions of interest are needed.
 
-5. Analysis: it extracts the average intensity in the mask and order parameters.
+3. Analysis: it extracts the average intensity in the mask and order parameters.
 
    *run the template to process one file as an example.
    *run the bulk to process one or all the edf files in directory, order parameters and fitting parameters are saved in a csv file.
@@ -22,5 +24,7 @@ The procedure is:
 Therefore, ideally functions_SAXS.py should be added to your PATH, and other notebooks should be in the same folder with the data folder, not the data files.
 
 If you find this code helpful to your work, please consider cite my other papers on x-ray scattering https://scholar.google.com/citations?user=hHUiOtMAAAAJ&hl=en
+
+Working on a graphic user interface.
 
 Cheers!
