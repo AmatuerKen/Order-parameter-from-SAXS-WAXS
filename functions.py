@@ -1,5 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+import os
+
+def load_all_edf_files(directory):
+    #edf_files = [f for f in os.listdir(directory) if f.endswith('.edf') and not f.startswith('._')]
+    edf_files = sorted(
+        [f for f in os.listdir(directory) if f.endswith('.edf') and not f.startswith('._')]
+    )
+    return edf_files
 
 def read_esrf_edf_image(filename):
     # Parameters known from the header (you can also parse these dynamically if needed)
@@ -19,11 +28,22 @@ def show_image(image, cmap='gray', vmin=None, vmax=None):
     plt.figure(figsize=(8, 6))
     plt.imshow(image, cmap=cmap, origin='lower', vmin=vmin, vmax=vmax)
     plt.colorbar(label='Intensity')
-    plt.title('ESRF EDF Image')
+    plt.title(filename)
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.tight_layout()
     plt.show()
+
+def save_image(image, directory, filename, cmap = 'gray', vmin=0, vmax=100):
+    plt.figure(figsize=(8, 6))
+    plt.imshow(image, cmap=cmap, origin='lower', vmin=vmin, vmax=vmax)
+    plt.colorbar(label='Intensity')
+    plt.title(filename)
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.tight_layout()
+    plt.savefig(directory + filename + '.png')
+    plt.close()
 
 def get_edf_header_size(filename):
     with open(filename, 'rb') as f:
@@ -529,7 +549,7 @@ def order_parameters(params):
     return P2, P4
 
 
-def procedure(filename, Q, angle, mask, mesh_q, mesh_theta, qmin, qmax, flag_plot = True):
+def procedure(filename, Q, angle, mask, mesh_q, mesh_theta, qmin, qmax, flag_plot = True, save_plot = False):
     
     image = read_esrf_edf_image(filename)
     mask = remove_bad_pixels_from_mask(mask, image, threshold=1e6)
@@ -573,5 +593,17 @@ def procedure(filename, Q, angle, mask, mesh_q, mesh_theta, qmin, qmax, flag_plo
         plt.title(filename)
         plt.legend()
         plt.show()
+
+    if save_plot:
+        plt.figure(figsize = (4,3))
+        plt.plot(kai, I_kai_offset, 'o', label='Data')
+        plt.plot(angle, I_fit, '-', label='Fit')
+        plt.xlabel("Kai")
+        plt.ylabel("I_kai_offset")
+        plt.title(filename)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(filename + 'fitorderparameter.png')
+        plt.close()
         
-    return P2, P4, params
+    return P2, P4, params, theta_max
