@@ -6,6 +6,7 @@ These are python codes/notebooks to extract order parameters of liquid crystalli
 The order parameter is extracted using Kratky model. The model, average limit, and baseline substraction are implemented based on this paper: https://doi.org/10.1080/02678292.2018.1455227
 
 The procedure is:
+
 0. Save data as png images.
 
 1. Creating qmap: it creates a correpondence between indices (x,y) and (q and angle), or (qx and qy).
@@ -16,7 +17,7 @@ The procedure is:
 
    *mask only needs to be created when different regions of interest are needed.
 
-3. Analysis: it extracts the average intensity in the mask and order parameters.
+3. Analysis: it extracts the average intensity in the mask and order parameters. Read from 1D file and find the two peak positions associated with layers and mesogen. 
 
    *run the template to process one file as an example.
    *run the bulk to process one or all the edf files in directory, order parameters and fitting parameters are saved in a csv file.
