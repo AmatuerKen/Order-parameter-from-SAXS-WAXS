@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+from scipy.signal import find_peaks
 import os
 
 def load_all_edf_files(directory):
@@ -607,3 +608,79 @@ def procedure(filename, Q, angle, mask, mesh_q, mesh_theta, qmin, qmax, flag_plo
         plt.close()
         
     return P2, P4, params, theta_max
+
+
+
+
+
+######        1D  #############
+def read_dat_three_columns(file_path):
+    # First, detect how many header lines to skip
+    skip_rows = 0
+
+    with open(file_path, 'r') as f:
+        
+        for line in f:
+            parts = line.strip().split()
+            try:
+                # Try converting first token to float to detect numeric start
+                float(parts[0])
+                break  # found first numeric line
+            except (ValueError, IndexError):
+                skip_rows += 1
+
+    # Load only numeric data
+    data = np.loadtxt(file_path, skiprows=skip_rows)
+
+    if data.shape[1] != 3:
+        raise ValueError(f"Expected 3 columns, but got {data.shape[1]} columns")
+
+    
+    return data
+
+def peaks_in_1D(data):
+    x, y = data[:, 0], data[:, 1]
+    peaks, _ = find_peaks(y)
+    
+    # Identify peaks near the two target q values
+    target_qs = [0.14, 1.4]
+    tolerance = 0.05
+    peak_positions = []
+    for target in target_qs:
+        mask = (x[peaks] > target - tolerance) & (x[peaks] < target + tolerance)
+        if np.any(mask):
+            idx_max = peaks[mask][np.argmax(y[peaks][mask])]
+            peak_positions.append(x[idx_max])
+        else:
+            peak_positions.append(None)
+    
+    return peak_positions
+
+def save_1D_plot(directory, filename, data, peak_positions):
+    plt.figure(figsize=(4,3))
+    plt.errorbar(data[:,0], data[:,1], data[:,2])
+    plt.title(filename)
+    x = data[:,0]
+    y = data[:,1]
+    for pos in peak_positions:
+        if pos is not None:
+            plt.scatter(pos, y[np.argmin(np.abs(x - pos))], 
+                        color='red', s=20, zorder=5, label=f"Peak at {pos:.3f}")
+    plt.xlabel(r'q [A$^{-1}$]')
+    plt.ylabel('I(q)')
+    plt.tight_layout()
+    plt.savefig(directory + filename + '.png')
+    plt.close()
+    #plt.show()
+
+def process_1D_data(filename, directory, save_plot = False):
+    dat_filename = os.path.splitext(filename)[0] + '.dat'
+    #print(dat_filename)
+    data = read_dat_three_columns(directory + dat_filename)
+
+    peak_positions = peaks_in_1D(data)
+    
+    if save_plot:
+        save_1D_plot(directory, dat_filename, data, peak_positions)
+
+    return peak_positions
