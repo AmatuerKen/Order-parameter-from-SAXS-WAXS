@@ -718,7 +718,7 @@ def smectic_procedure(directory, filename, image, mask, mesh_q, mesh_theta, list
     del angle
     del mask
     gc.collect()
-    plt.close('all')
+    #plt.close('all')
     return I0_fit, q0_fit, xi_fit, fwhm, domain_size, I0_fit2, xi_fit2, theta_range
 
 
