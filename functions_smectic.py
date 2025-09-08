@@ -664,7 +664,7 @@ def save_smectic_plot(filename,
     
     #plt.tight_layout()
     plt.savefig(filename + 'fitSmecticRing.png')
-    plt.close()
+    plt.close(fig)
 
 def smectic_procedure(directory, filename, image, mask, mesh_q, mesh_theta, list_q, list_theta, Q, angle, qmin, qmax, initial_angle):
     
@@ -687,14 +687,14 @@ def smectic_procedure(directory, filename, image, mask, mesh_q, mesh_theta, list
     
     Nq = len(list_q)
     Ntheta = len(list_theta)
-    '''
+    
     save_smectic_plot(directory + filename,
                         Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline,
                         I0_fit, q0_fit, xi_fit, I0_fit2, xi_fit2,
                         image, Q, angle,
                         qmin, qmax, Nq, Ntheta,
                         vmin=0, vmax=100, initial_angle = 60/180*np.pi)
-    '''
+    
     del image
     del Q
     del angle
