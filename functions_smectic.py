@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from functions import *
+import gc
 
 '''
 def create_qtheta_mask_full_angle(Q, angle, qmin, qmax, Nq, Ntheta):
@@ -693,7 +694,13 @@ def smectic_procedure(directory, filename, image, mask, mesh_q, mesh_theta, list
                         image, Q, angle,
                         qmin, qmax, Nq, Ntheta,
                         vmin=0, vmax=100, initial_angle = 60/180*np.pi)
-    
+
+    del image
+    del Q
+    del angle
+    del mask
+    gc.collect()
+    plt.close('all')
     return I0_fit, q0_fit, xi_fit, fwhm, domain_size, I0_fit2, xi_fit2, theta_range
 
 
