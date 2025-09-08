@@ -131,7 +131,7 @@ def check_Qmap_center(image, params, Q, q_levels=[0.5, 1.0, 1.5], vmin=None, vma
     
     xc = int(params["Center_1"])
     yc = int(params["Center_2"])
-    interval = 100
+    interval = 70
     
     plt.figure(figsize=(8, 6))
     plt.imshow(image[yc - interval:yc + interval, xc - interval:xc + interval], cmap=cmap, origin='lower', vmin=vmin, vmax=vmax)
@@ -270,7 +270,8 @@ def calculate_average_intensity_within_mask(image, mask, mesh_q, mesh_theta):
     bin_avg[bin_counts == 0] = np.nan
 
     # Reshape to match mesh_q / mesh_theta
-    Iqtheta = bin_avg.reshape(Nq, Ntheta)
+    #Iqtheta = bin_avg.reshape(Nq, Ntheta)
+    Iqtheta = bin_avg.reshape(Ntheta, Nq).T
 
     return Iqtheta
 
