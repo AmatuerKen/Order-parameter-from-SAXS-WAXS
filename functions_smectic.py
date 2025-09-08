@@ -431,6 +431,7 @@ def compute_baseline_intensity_smectic(Q, angle, image, theta_max, initial_angle
         plt.xlim([450, 600])
         plt.ylim([625, 750])
         plt.show()
+        plt.close()
         
         
     # Compute average
@@ -565,7 +566,7 @@ def fit_lorentz_perp(qvals, Iq):
     """
     # Initial guess for I0
     I0_guess = np.max(Iq)
-
+    '''
     # Estimate q at half maximum
     half_max = I0_guess / 2
     try:
@@ -578,7 +579,8 @@ def fit_lorentz_perp(qvals, Iq):
             xi_guess = 0.01  # fallback
     except Exception:
         xi_guess = 0.01
-
+    '''
+    xi_guess = 0.01
     p0 = [I0_guess, xi_guess]
 
     # Fit
