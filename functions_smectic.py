@@ -665,9 +665,7 @@ def save_smectic_plot(filename,
     plt.savefig(filename + 'fitSmecticRing.png')
     plt.close()
 
-def smectic_procedure(directory, filename, mask, mesh_q, mesh_theta, list_q, list_theta, Q, angle, qmin, qmax, initial_angle):
-
-    image = read_esrf_edf_image(directory + filename)
+def smectic_procedure(directory, filename, image, mask, mesh_q, mesh_theta, list_q, list_theta, Q, angle, qmin, qmax, initial_angle):
     
     I_ave = calculate_average_intensity_within_mask(image, mask, mesh_q, mesh_theta)
     
