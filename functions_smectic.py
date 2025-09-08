@@ -559,10 +559,26 @@ def lorentz_perp(q, I0, xi):
     return I0 / (q**2 * xi**2 + 1)
 
 def fit_lorentz_perp(qvals, Iq):
-
-    # Initial guesses
+    """
+    Fit perpendicular intensity profile to Lorentzian.
+    Uses inverse of half-height width as xi initial guess.
+    """
+    # Initial guess for I0
     I0_guess = np.max(Iq)
-    xi_guess = 0.01
+
+    # Estimate q at half maximum
+    half_max = I0_guess / 2
+    try:
+        q_hwhm_candidates = qvals[np.where(Iq >= half_max)[0]]
+        if len(q_hwhm_candidates) > 1:
+            q_hwhm = q_hwhm_candidates[-1] - q_hwhm_candidates[0]
+            q_hwhm = max(q_hwhm, 1e-6)  # avoid zero
+            xi_guess = 1.0 / q_hwhm
+        else:
+            xi_guess = 0.01  # fallback
+    except Exception:
+        xi_guess = 0.01
+
     p0 = [I0_guess, xi_guess]
 
     # Fit
