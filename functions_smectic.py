@@ -654,7 +654,7 @@ def save_smectic_plot(filename,
     # Smooth curve
     q_fit = np.linspace(np.min(qvals), np.max(qvals), 500)
     I_fit = lorentz_para(q_fit, *popt)
-    axes[1.plot(q_fit, I_fit, "k-", label="Lorentz fit", linewidth=2)
+    axes[1].plot(q_fit, I_fit, "k-", label="Lorentz fit", linewidth=2)
     
     axes[1].set_xlabel("q")
     axes[1].set_ylabel("Intensity")
