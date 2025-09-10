@@ -484,6 +484,8 @@ def get_inner_ring_profile(directory, filename, mask_filename, Q, angle, initial
 
 def Ipeak_all_pixel(image, mask, Q, angle, qmin, qmax, theta_peak, theta_bin):
     # Condition on q
+    angle = np.where(angle < 0, angle + 2*np.pi, angle)
+    
     in_qbin = (Q >= qmin) & (Q < qmax)
 
     # Condition on theta (within ±theta_bin around theta_peak)
