@@ -231,7 +231,7 @@ def find_smectic_q_peak(I_ave, list_q, flag_plot = False):
     p0 = [I0_guess, q0_guess, gamma_guess]
     
     # Fit Lorentzian
-    popt, pcov = curve_fit(lorentz, q_valid, I_valid, p0=p0)
+    popt, pcov = curve_fit(lorentz, q_valid, I_valid, p0=p0, maxfev = 10000)
     I0_fit, q0_fit, gamma_fit = popt
     #print(f"Fitted Lorentzian parameters: I0={I0_fit}, q0={q0_fit}, gamma={gamma_fit}")
 
@@ -314,7 +314,7 @@ def fit_parabola_peak_smectic(theta, intensity, initial_angle, num_points=5):
 
 def find_smectic_peak(I_ave, list_q, list_theta, initial_angle, flag_plot):
 
-    q_peak = find_smectic_q_peak(I_ave, list_q, flag_plot = False)
+    q_peak = find_smectic_q_peak(I_ave, list_q, flag_plot = flag_plot)
     q_idx_closest = np.argmin(np.abs(list_q - q_peak))
     
     intensity = I_ave[q_idx_closest, :]
@@ -610,7 +610,7 @@ def save_smectic_plot(filename,
                         vmin=None, vmax=None, initial_angle = 60/180*np.pi,
                         q_color='red', theta_color='blue'):
 
-    '''
+    
     angle = np.where(angle < 0, angle + 2*np.pi, angle)
     # Compute bin edges
     q_edges = np.linspace(qmin, qmax, Nq + 1)
@@ -623,9 +623,9 @@ def save_smectic_plot(filename,
     # Set contrast
     if vmin is None or vmax is None:
         vmin, vmax = np.percentile(image, [1, 99])
-    '''
+    
     fig, axes = plt.subplots(1, 2, figsize=(8,4), constrained_layout=True)
-    '''
+    
     # -----------------------------
     # (1) Image with bin boundaries
     # -----------------------------
@@ -644,9 +644,55 @@ def save_smectic_plot(filename,
     axes[0].set_ylabel("Y (pixels)")
     axes[0].set_xlim([450, 600])
     axes[0].set_ylim([625, 750])
-    '''
+    
     # -----------------------------
     # (2) q vs intensity (Lorentz fit)
+    # -----------------------------
+    axes[0].scatter(qvals, Iq_pixel - baseline, label="Data", color="blue", alpha=0.6)
+
+    popt = I0_fit, q0_fit, xi_fit
+    # Smooth curve
+    q_fit = np.linspace(np.min(qvals), np.max(qvals), 500)
+    I_fit = lorentz_para(q_fit, *popt)
+    axes[1.plot(q_fit, I_fit, "k-", label="Lorentz fit", linewidth=2)
+    
+    axes[1].set_xlabel("q")
+    axes[1].set_ylabel("Intensity")
+    axes[1].set_title("I_Parallel Fit (q)")
+    axes[1].legend()
+    
+    # -----------------------------
+    # (3) θ vs intensity (Lorentz-perp fit)
+    # -----------------------------
+    popt = I0_fit2, xi_fit2
+    #print(f"Perpendicular fit: I0={I0_fit:.3f}, xi={xi_fit:.3f}, theta_range={theta_range:.3f}")
+    
+    theta_fit = np.linspace(0, np.max(shifted_theta), 500)
+    I_fit = lorentz_perp(theta_fit, *popt)
+    
+    axes[2].scatter(shifted_theta, shifted_Itheta - baseline, label="Data", color="blue", alpha=0.6)
+    axes[2].plot(theta_fit, I_fit, "r-", label="Lorentz-perp fit", linewidth=2)
+    
+    axes[2].set_xlabel("shifted θ (radians)")
+    axes[2].set_ylabel("Intensity (a.u.)")
+    axes[2].set_title("I_Perp Fit (θ)")
+    axes[2].legend()
+    
+    #plt.tight_layout()
+    plt.savefig(filename + 'fitSmecticRing.png')
+    plt.close(fig)
+
+def save_smectic_plot_simplified(filename,
+                      Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline,
+                      I0_fit, q0_fit, xi_fit, I0_fit2, xi_fit2):
+
+
+    I0 = np.nanmax(Iq_pixel)
+    
+    fig, axes = plt.subplots(1, 2, figsize=(8,4), constrained_layout=True)
+
+    # -----------------------------
+    # (1) q vs intensity (Lorentz fit)
     # -----------------------------
     axes[0].scatter(qvals, Iq_pixel - baseline, label="Data", color="blue", alpha=0.6)
 
@@ -658,11 +704,12 @@ def save_smectic_plot(filename,
     
     axes[0].set_xlabel("q")
     axes[0].set_ylabel("Intensity")
+    axes[0].set_ylim(0, I0*1.5)
     axes[0].set_title("I_Parallel Fit (q)")
     axes[0].legend()
     
     # -----------------------------
-    # (3) θ vs intensity (Lorentz-perp fit)
+    # (2) θ vs intensity (Lorentz-perp fit)
     # -----------------------------
     popt = I0_fit2, xi_fit2
     #print(f"Perpendicular fit: I0={I0_fit:.3f}, xi={xi_fit:.3f}, theta_range={theta_range:.3f}")
