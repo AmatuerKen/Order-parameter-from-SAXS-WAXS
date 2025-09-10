@@ -505,21 +505,64 @@ def lorentz_para_mix(q, I0, I1, q0, xi):
     return I0 / ((q - q0)**2 * xi**2 + 1) + I1 / ((q - q0)**2 * xi**2 + 1)**2
 
 def fit_lorentz_para(Iq, qpara, q0):
-    
+    """
+    Fit Lorentzian parallel form to I(q), removing NaNs/Infs before fitting.
+    Parameters
+    ----------
+    Iq : array-like
+        Intensity values
+    qpara : array-like
+        q values corresponding to Iq
+    q0 : float
+        Peak position (A^-1)
+
+    Returns
+    -------
+    popt : array
+        Best-fit parameters [I0, q0_fit, xi_fit]
+    pcov : array
+        Covariance matrix
+    """
+    # Convert to numpy arrays
+    Iq = np.array(Iq, dtype=float)
+    qpara = np.array(qpara, dtype=float)
+
+    # Remove NaNs/Infs
+    mask = np.isfinite(Iq) & np.isfinite(qpara)
+    Iq = Iq[mask]
+    qpara = qpara[mask]
+
+    if len(Iq) < 3:  # not enough points to fit
+        print("Not enough valid data for fitting.")
+        return None, None
+
+    # Initial guesses
     I0_guess = np.max(Iq)
-    xi_guess = 1.0
+
+    # --- Estimate xi from half width ---
+    half_max = I0_guess / 2
+    mask_half = Iq > half_max
+    if np.any(mask_half):
+        q_above = qpara[mask_half]
+        if len(q_above) >= 2:
+            width_est = q_above[-1] - q_above[0]  # FWHM estimate
+            xi_guess = 1.0 / width_est if width_est > 0 else 10.0
+        else:
+            xi_guess = 10.0
+    else:
+        xi_guess = 10.0
 
     p0 = [I0_guess, q0, xi_guess]
-    
+    #print(xi_guess)
     try:
         popt, pcov = curve_fit(lorentz_para, qpara, Iq, p0=p0, maxfev=10000)
-        
     except RuntimeError:
         print("Lorentz fit did not converge.")
         return None, None
 
     return popt, pcov
 
+    '''
 def corr_length_parallel_mix(Iq, qpara, q0):
 
     I0_guess = np.max(Iq) * 0.5
@@ -533,7 +576,7 @@ def corr_length_parallel_mix(Iq, qpara, q0):
     except RuntimeError:
         print("Lorentz mix fit did not converge.")
         return None, None
-
+'''
 
 def gaussian_theta(theta, I0, sigma):
     """Gaussian centered at zero with no baseline"""
@@ -559,26 +602,10 @@ def lorentz_perp(q, I0, xi):
     return I0 / (q**2 * xi**2 + 1)
 
 def fit_lorentz_perp(qvals, Iq):
-    """
-    Fit perpendicular intensity profile to Lorentzian.
-    Uses inverse of half-height width as xi initial guess.
-    """
-    # Initial guess for I0
+
+    # Initial guesses
     I0_guess = np.max(Iq)
-
-    # Estimate q at half maximum
-    half_max = I0_guess / 2
-    try:
-        q_hwhm_candidates = qvals[np.where(Iq >= half_max)[0]]
-        if len(q_hwhm_candidates) > 1:
-            q_hwhm = q_hwhm_candidates[-1] - q_hwhm_candidates[0]
-            q_hwhm = max(q_hwhm, 1e-6)  # avoid zero
-            xi_guess = 1.0 / q_hwhm
-        else:
-            xi_guess = 0.01  # fallback
-    except Exception:
-        xi_guess = 0.01
-
+    xi_guess = 0.01
     p0 = [I0_guess, xi_guess]
 
     # Fit
@@ -593,7 +620,7 @@ def fit_peak(Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline):
     
     I0_fit, q0_fit, xi_fit = popt
     fwhm = 2/xi_fit
-    domain_size = 2*np.pi/fwhm
+    domain_size = np.abs(2*np.pi/fwhm)
     
     popt, pcov = fit_lorentz_perp(shifted_theta, shifted_Itheta - baseline)
     
