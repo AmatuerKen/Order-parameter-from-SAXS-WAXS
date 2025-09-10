@@ -797,12 +797,9 @@ def smectic_procedure(directory, filename, image, mask, mesh_q, mesh_theta, list
     Nq = len(list_q)
     Ntheta = len(list_theta)
     
-    save_smectic_plot(directory + filename,
+    save_smectic_plot_simplified(directory + filename,
                         Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline,
-                        I0_fit, q0_fit, xi_fit, I0_fit2, xi_fit2,
-                        image, Q, angle,
-                        qmin, qmax, Nq, Ntheta,
-                        vmin=0, vmax=100, initial_angle = 60/180*np.pi)
+                        I0_fit, q0_fit, xi_fit, I0_fit2, xi_fit2)
     
     del image
     del Q
