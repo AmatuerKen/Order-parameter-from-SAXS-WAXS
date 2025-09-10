@@ -431,7 +431,6 @@ def compute_baseline_intensity_smectic(Q, angle, image, theta_max, initial_angle
         plt.xlim([450, 600])
         plt.ylim([625, 750])
         plt.show()
-        plt.close()
         
         
     # Compute average
@@ -566,7 +565,7 @@ def fit_lorentz_perp(qvals, Iq):
     """
     # Initial guess for I0
     I0_guess = np.max(Iq)
-    '''
+
     # Estimate q at half maximum
     half_max = I0_guess / 2
     try:
@@ -579,8 +578,7 @@ def fit_lorentz_perp(qvals, Iq):
             xi_guess = 0.01  # fallback
     except Exception:
         xi_guess = 0.01
-    '''
-    xi_guess = 0.01
+
     p0 = [I0_guess, xi_guess]
 
     # Fit
@@ -612,7 +610,7 @@ def save_smectic_plot(filename,
                         vmin=None, vmax=None, initial_angle = 60/180*np.pi,
                         q_color='red', theta_color='blue'):
 
-    
+    '''
     angle = np.where(angle < 0, angle + 2*np.pi, angle)
     # Compute bin edges
     q_edges = np.linspace(qmin, qmax, Nq + 1)
@@ -625,9 +623,9 @@ def save_smectic_plot(filename,
     # Set contrast
     if vmin is None or vmax is None:
         vmin, vmax = np.percentile(image, [1, 99])
-    
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5), constrained_layout=True)
-    
+    '''
+    fig, axes = plt.subplots(1, 2, figsize=(8,4), constrained_layout=True)
+    '''
     # -----------------------------
     # (1) Image with bin boundaries
     # -----------------------------
@@ -646,22 +644,22 @@ def save_smectic_plot(filename,
     axes[0].set_ylabel("Y (pixels)")
     axes[0].set_xlim([450, 600])
     axes[0].set_ylim([625, 750])
-    
+    '''
     # -----------------------------
     # (2) q vs intensity (Lorentz fit)
     # -----------------------------
-    axes[1].scatter(qvals, Iq_pixel - baseline, label="Data", color="blue", alpha=0.6)
+    axes[0].scatter(qvals, Iq_pixel - baseline, label="Data", color="blue", alpha=0.6)
 
     popt = I0_fit, q0_fit, xi_fit
     # Smooth curve
     q_fit = np.linspace(np.min(qvals), np.max(qvals), 500)
     I_fit = lorentz_para(q_fit, *popt)
-    axes[1].plot(q_fit, I_fit, "k-", label="Lorentz fit", linewidth=2)
+    axes[0].plot(q_fit, I_fit, "k-", label="Lorentz fit", linewidth=2)
     
-    axes[1].set_xlabel("q")
-    axes[1].set_ylabel("Intensity")
-    axes[1].set_title("I_Parallel Fit (q)")
-    axes[1].legend()
+    axes[0].set_xlabel("q")
+    axes[0].set_ylabel("Intensity")
+    axes[0].set_title("I_Parallel Fit (q)")
+    axes[0].legend()
     
     # -----------------------------
     # (3) θ vs intensity (Lorentz-perp fit)
@@ -672,31 +670,77 @@ def save_smectic_plot(filename,
     theta_fit = np.linspace(0, np.max(shifted_theta), 500)
     I_fit = lorentz_perp(theta_fit, *popt)
     
-    axes[2].scatter(shifted_theta, shifted_Itheta - baseline, label="Data", color="blue", alpha=0.6)
-    axes[2].plot(theta_fit, I_fit, "r-", label="Lorentz-perp fit", linewidth=2)
+    axes[1].scatter(shifted_theta, shifted_Itheta - baseline, label="Data", color="blue", alpha=0.6)
+    axes[1].plot(theta_fit, I_fit, "r-", label="Lorentz-perp fit", linewidth=2)
     
-    axes[2].set_xlabel("shifted θ (radians)")
-    axes[2].set_ylabel("Intensity (a.u.)")
-    axes[2].set_title("I_Perp Fit (θ)")
-    axes[2].legend()
+    axes[1].set_xlabel("shifted θ (radians)")
+    axes[1].set_ylabel("Intensity (a.u.)")
+    axes[1].set_title("I_Perp Fit (θ)")
+    axes[1].legend()
     
     #plt.tight_layout()
     plt.savefig(filename + 'fitSmecticRing.png')
     plt.close(fig)
 
+def calculate_average_intensity_within_mask_smectic(directory, filename, mask, mesh_q, mesh_theta):
+    """
+    Compute average intensity in each bin defined by the mask.
+
+    Parameters:
+        image      : 2D array of raw intensity values
+        mask       : 2D array of bin indices (NaN for out-of-bin pixels)
+        mesh_q     : 2D array of q-bin centers (shape: Nq × Ntheta)
+        mesh_theta : 2D array of theta-bin centers (same shape)
+
+    Returns:
+        Iqtheta : 2D array (Nq × Ntheta) of average intensity in each bin
+                 (NaN if no pixels fall into a bin)
+    """
+    image = read_esrf_edf_image(directory + filename)
+    
+    Nq, Ntheta = mesh_q.shape
+    num_bins = Nq * Ntheta
+
+    # Flatten image and mask
+    flat_image = image.flatten()
+    flat_mask = mask.flatten()
+
+    # Initialize arrays to accumulate sums and counts
+    bin_sums = np.zeros(num_bins)
+    bin_counts = np.zeros(num_bins)
+
+    # Iterate over valid pixels only
+    valid_mask = ~np.isnan(flat_mask)
+    indices = flat_mask[valid_mask].astype(int)
+    values = flat_image[valid_mask]
+
+    # Accumulate sum and count for each bin
+    np.add.at(bin_sums, indices, values)
+    np.add.at(bin_counts, indices, 1)
+
+    # Compute average, set 0-count bins to NaN
+    with np.errstate(invalid='ignore', divide='ignore'):
+        bin_avg = bin_sums / bin_counts
+    bin_avg[bin_counts == 0] = np.nan
+
+    # Reshape to match mesh_q / mesh_theta
+    #Iqtheta = bin_avg.reshape(Nq, Ntheta)
+    Iqtheta = bin_avg.reshape(Ntheta, Nq).T
+
+    return Iqtheta
+
 def smectic_procedure(directory, filename, image, mask, mesh_q, mesh_theta, list_q, list_theta, Q, angle, qmin, qmax, initial_angle):
-    
+        
     I_ave = calculate_average_intensity_within_mask(image, mask, mesh_q, mesh_theta)
-    
+
     q_peak, q_idx_closest, theta_peak_horizontal_zero, theta_peak, theta_idx_closest = find_smectic_peak(I_ave, list_q, list_theta, initial_angle, flag_plot = False)
-    
+
     theta_bin = list_theta[1] - list_theta[0]
-    
+
     Iq_pixel, qvals = Ipeak_all_pixel(image, mask, Q, angle, qmin, qmax, theta_peak, theta_bin)
-    
-    #Iq = np.nanmean(I_ave[:, theta_idx_closest-1:theta_idx_closest+1], axis = 1)
+
     Itheta = np.nanmean(I_ave[q_idx_closest-1:q_idx_closest+1, :], axis = 0)
-    
+
     shifted_theta, shifted_Itheta = shift_and_average_over_theta(list_theta, Itheta, theta_peak)
     
     baseline = compute_baseline_intensity_smectic(Q, angle, image, theta_peak, initial_angle, qmin, qmax, pixels=5, angle_width_deg=2.5, flag_plot = False)
@@ -718,7 +762,7 @@ def smectic_procedure(directory, filename, image, mask, mesh_q, mesh_theta, list
     del angle
     del mask
     gc.collect()
-    #plt.close('all')
+    plt.close('all')
     return I0_fit, q0_fit, xi_fit, fwhm, domain_size, I0_fit2, xi_fit2, theta_range
 
 
