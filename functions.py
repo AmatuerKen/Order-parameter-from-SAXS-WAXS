@@ -153,6 +153,23 @@ def check_Qmap_center(image, params, Q, q_levels=[0.5, 1.0, 1.5], vmin=None, vma
     plt.tight_layout()
     plt.show()
 
+def check_Qmap_center_custom_interval(image, params, Q, interval, q_levels=[0.5, 1.0, 1.5], vmin=None, vmax=None, cmap='gray'):
+    
+    xc = int(params["Center_1"])
+    yc = int(params["Center_2"])
+    interval = interval
+    
+    plt.figure(figsize=(8, 6))
+    plt.imshow(image[yc - interval:yc + interval, xc - interval:xc + interval], cmap=cmap, origin='lower', vmin=vmin, vmax=vmax)
+    contours = plt.contour(Q[yc - interval:yc + interval, xc - interval:xc + interval], levels=q_levels, colors='red')
+    plt.clabel(contours, inline=True, fmt="q=%.1f Å⁻¹", fontsize=10)
+    #plt.colorbar(label='Intensity')
+    plt.title('ESRF EDF Image')
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.tight_layout()
+    plt.show()
+
 def save_Qmaps(Q, angle, Qx, Qy, xc, yc, output_file= "qmap_output.npz"):
     np.savez(output_file, Q=Q, angle=angle, Qx=Qx, Qy=Qy, xc = xc, yc = yc)
 
