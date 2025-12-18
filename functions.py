@@ -11,6 +11,15 @@ def load_all_edf_files(directory):
     )
     return edf_files
 
+def load_all_edf_files_withdash(directory):
+    edf_files = sorted(
+        f for f in os.listdir(directory)
+        if f.endswith(".edf")
+        and "-" in f
+        and not f.startswith("._")
+    )
+    return edf_files
+
 def read_esrf_edf_image(filename):
     # Parameters known from the header (you can also parse these dynamically if needed)
     header_size = get_edf_header_size(filename)
