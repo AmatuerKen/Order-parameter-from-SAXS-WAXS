@@ -196,7 +196,7 @@ def create_smectic_mask(directory, mask_filename, image, Q, angle, qmin,
                             qmin, qmax, Nq, Ntheta,
                             vmin=vmin, vmax=vmax, initial_angle = initial_angle)
     
-    mask = remove_bad_or_beamstop_from_mask(mask, image, threshold=1e4, lower_threshold = 1)
+    mask = remove_bad_or_beamstop_from_mask(mask, image, threshold=1e4, lower_threshold = 0)
     
     save_qtheta_mask(directory + mask_filename, mask, list_q, list_theta, bin_lookup, mesh_q, mesh_theta, qmin, qmax)
     
