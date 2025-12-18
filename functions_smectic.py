@@ -199,8 +199,26 @@ def create_smectic_mask(directory, mask_filename, image, Q, angle, qmin,
     mask = remove_bad_or_beamstop_from_mask(mask, image, threshold=1e4, lower_threshold = 0)
     
     save_qtheta_mask(directory + mask_filename, mask, list_q, list_theta, bin_lookup, mesh_q, mesh_theta, qmin, qmax)
-    
 
+def create_smectic_mask_custom_threshold(directory, mask_filename, image, Q, angle, qmin, 
+                                                  qmax, Nq, Ntheta, 
+                                                  initial_angle, threshold, lower_threshold, vmin, vmax, plotflag):
+    
+    mask, list_q, list_theta, bin_lookup, mesh_q, mesh_theta = create_qtheta_mask_smectic(Q, angle, qmin, 
+                                                                                          qmax, Nq, Ntheta, 
+                                                                                          initial_angle = initial_angle)
+    show_overlay_mask_smectic(image, Q, angle,
+                            qmin, qmax, Nq, Ntheta,
+                            vmin=vmin, vmax=vmax, initial_angle = initial_angle)
+    
+    mask = remove_bad_or_beamstop_from_mask(mask, image, threshold=threshold, lower_threshold = lower_threshold)
+    
+    save_qtheta_mask(directory + mask_filename, mask, list_q, list_theta, bin_lookup, mesh_q, mesh_theta, qmin, qmax)
+
+    if plotflag:
+        plt.figure(figsize = (4,3))
+        plt.imshow(mask)
+        plt.show()
 
 
 def lorentz(q, I0, q0, gamma):
