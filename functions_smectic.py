@@ -631,6 +631,29 @@ def fit_peak(Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline):
     
     return I0_fit, q0_fit, xi_fit, fwhm, domain_size, I0_fit2, xi_fit2, theta_range
 
+
+def fit_peak_3(Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline, shifted_Itheta_regularOP):
+    
+    popt, pcov = fit_lorentz_para(Iq_pixel - baseline, qvals, q_peak)
+    
+    I0_fit, q0_fit, xi_fit = popt
+    fwhm = 2/xi_fit
+    domain_size = np.abs(2*np.pi/fwhm)
+    
+    popt, pcov = fit_lorentz_perp(shifted_theta, shifted_Itheta - baseline)
+    
+    I0_fit2, xi_fit2 = popt
+    theta_range = 2/xi_fit2
+
+    initial_guess = np.ones(6)
+    params_opt, _ = curve_fit(Kratky_function, shifted_theta, shifted_Itheta_regularOP - baseline, p0=initial_guess)
+
+    # Store as 1D array
+    params = np.array(params_opt)
+    OP = order_parameters(params)
+
+    return I0_fit, q0_fit, xi_fit, fwhm, domain_size, I0_fit2, xi_fit2, theta_range, params, OP
+
 def save_smectic_plot(filename,
                       Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline,
                       I0_fit, q0_fit, xi_fit, I0_fit2, xi_fit2,
@@ -711,14 +734,107 @@ def save_smectic_plot(filename,
     plt.savefig(filename + 'fitSmecticRing.png')
     plt.close(fig)
 
-def save_smectic_plot_simplified(filename,
+
+def save_smectic_plot_3(filename,
                       Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline,
-                      I0_fit, q0_fit, xi_fit, I0_fit2, xi_fit2):
+                      I0_fit, q0_fit, xi_fit, I0_fit2, xi_fit2, params,
+                      image, Q, angle,
+                        qmin, qmax, Nq, Ntheta,
+                        vmin=None, vmax=None, initial_angle = 60/180*np.pi,
+                        q_color='red', theta_color='blue'):
+
+    
+    angle = np.where(angle < 0, angle + 2*np.pi, angle)
+    # Compute bin edges
+    q_edges = np.linspace(qmin, qmax, Nq + 1)
+    
+    list_theta = np.linspace(initial_angle, initial_angle + np.pi, Ntheta+1)
+    list_theta = list_theta[1:]
+    binsize_theta = np.pi/Ntheta
+    theta_edges = np.linspace(list_theta[0] - binsize_theta / 2, list_theta[-1] + binsize_theta / 2, Ntheta + 1)
+    
+    # Set contrast
+    if vmin is None or vmax is None:
+        vmin, vmax = np.percentile(image, [1, 99])
+    
+    fig, axes = plt.subplots(1, 4, figsize=(8,4), constrained_layout=True)
+    
+    # -----------------------------
+    # (1) Image with bin boundaries
+    # -----------------------------
+    axes[0].imshow(image, cmap='gray', origin='lower', vmin=vmin, vmax=vmax)
+    
+    # Overlay q-bin contours
+    for q in q_edges:
+        axes[0].contour(Q, levels=[q], colors=q_color, linewidths=0.5, linestyles='dotted')
+    
+    # Overlay theta-bin contours
+    for theta in theta_edges:
+        axes[0].contour(angle, levels=[theta], colors=theta_color, linewidths=0.5, linestyles='dotted')
+    
+    axes[0].set_title("Q–θ Bin Boundaries Overlay")
+    axes[0].set_xlabel("X (pixels)")
+    axes[0].set_ylabel("Y (pixels)")
+    axes[0].set_xlim([450, 600])
+    axes[0].set_ylim([625, 750])
+    
+    # -----------------------------
+    # (2) q vs intensity (Lorentz fit)
+    # -----------------------------
+    axes[0].scatter(qvals, Iq_pixel - baseline, label="Data", color="blue", alpha=0.6)
+
+    popt = I0_fit, q0_fit, xi_fit
+    # Smooth curve
+    q_fit = np.linspace(np.min(qvals), np.max(qvals), 500)
+    I_fit = lorentz_para(q_fit, *popt)
+    axes[1].plot(q_fit, I_fit, "k-", label="Lorentz fit", linewidth=2)
+    
+    axes[1].set_xlabel("q")
+    axes[1].set_ylabel("Intensity")
+    axes[1].set_title("I_Parallel Fit (q)")
+    axes[1].legend()
+    
+    # -----------------------------
+    # (3) θ vs intensity (Lorentz-perp fit)
+    # -----------------------------
+    popt = I0_fit2, xi_fit2
+    #print(f"Perpendicular fit: I0={I0_fit:.3f}, xi={xi_fit:.3f}, theta_range={theta_range:.3f}")
+    
+    theta_fit = np.linspace(0, np.max(shifted_theta), 500)
+    I_fit = lorentz_perp(theta_fit, *popt)
+    
+    axes[2].scatter(shifted_theta, shifted_Itheta - baseline, label="Data", color="blue", alpha=0.6)
+    axes[2].plot(theta_fit, I_fit, "r-", label="Lorentz-perp fit", linewidth=2)
+    
+    axes[2].set_xlabel("shifted θ (radians)")
+    axes[2].set_ylabel("Intensity (a.u.)")
+    axes[2].set_title("I_Perp Fit (θ)")
+    axes[2].legend()
+
+
+    angle = np.linspace(0, np.pi/2, 100)
+    # Evaluate the fitted curve
+    I_fit = Kratky_function(angle, *params)
+    
+    axes[3].plot(shifted_theta, shifted_Itheta - baseline, 'o', label='Data')
+    axes[3].plot(angle, I_fit, '-', label='Fit')
+    axes[3].set_xlabel("Kai")
+    axes[3].set_ylabel("I_kai_offset")
+    axes[3].legend()
+    
+    #plt.tight_layout()
+    plt.savefig(filename + 'fitSmecticRing.png')
+    plt.close(fig)
+
+
+def save_smectic_plot_simplified_3(filename,
+                      Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline, shifted_Itheta_regularOP,
+                      I0_fit, q0_fit, xi_fit, I0_fit2, xi_fit2, params):
 
 
     I0 = np.nanmax(Iq_pixel)
     
-    fig, axes = plt.subplots(1, 2, figsize=(8,4), constrained_layout=True)
+    fig, axes = plt.subplots(1, 3, figsize=(12,4), constrained_layout=True)
 
     # -----------------------------
     # (1) q vs intensity (Lorentz fit)
@@ -754,8 +870,17 @@ def save_smectic_plot_simplified(filename,
     axes[1].set_title("I_Perp Fit (θ)")
     axes[1].legend()
     
+    angle = np.linspace(0, np.pi/2, 100)
+    I_fit = Kratky_function(angle, *params)
+    
+    axes[2].plot(shifted_theta, shifted_Itheta_regularOP - baseline, 'o', label='Data')
+    axes[2].plot(angle, I_fit, '-', label='Fit')
+    axes[2].set_xlabel("Kai")
+    axes[2].set_ylabel("I_kai_offset")
+    axes[2].legend()
+    
     #plt.tight_layout()
-    plt.savefig(filename + 'fitSmecticRing.png')
+    plt.savefig(filename + 'fitSmecticRing_3.png')
     plt.close(fig)
 
 def calculate_average_intensity_within_mask_smectic(directory, filename, mask, mesh_q, mesh_theta):
@@ -817,18 +942,27 @@ def smectic_procedure(directory, filename, image, mask, mesh_q, mesh_theta, list
 
     Itheta = np.nanmean(I_ave[q_idx_closest-1:q_idx_closest+1, :], axis = 0)
 
+    q_width = 5
+    Itheta_regularOP = np.nanmean(I_ave[q_idx_closest-q_width:q_idx_closest+q_width, :], axis = 0)    
+
     shifted_theta, shifted_Itheta = shift_and_average_over_theta(list_theta, Itheta, theta_peak)
-    
+
+    _, shifted_Itheta_regularOP = shift_and_average_over_theta(list_theta, Itheta_regularOP, theta_peak)
+
     baseline = compute_baseline_intensity_smectic(Q, angle, image, theta_peak, initial_angle, qmin, qmax, pixels=5, angle_width_deg=2.5, flag_plot = False)
     
-    I0_fit, q0_fit, xi_fit, fwhm, domain_size, I0_fit2, xi_fit2, theta_range = fit_peak(Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline)
+    #I0_fit, q0_fit, xi_fit, fwhm, domain_size, I0_fit2, xi_fit2, theta_range = fit_peak(Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline)
+    I0_fit, q0_fit, xi_fit, fwhm, domain_size, I0_fit2, xi_fit2, theta_range, params, OP = fit_peak_3(Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline, shifted_Itheta_regularOP)
     
     Nq = len(list_q)
     Ntheta = len(list_theta)
     
-    save_smectic_plot_simplified(directory + filename,
-                        Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline,
-                        I0_fit, q0_fit, xi_fit, I0_fit2, xi_fit2)
+    #save_smectic_plot_simplified(directory + filename,
+    #                    Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline,
+    #                    I0_fit, q0_fit, xi_fit, I0_fit2, xi_fit2)
+    save_smectic_plot_simplified_3(directory + filename,
+                        Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline, shifted_Itheta_regularOP,
+                        I0_fit, q0_fit, xi_fit, I0_fit2, xi_fit2, params)
     
     del image
     del Q
@@ -836,7 +970,7 @@ def smectic_procedure(directory, filename, image, mask, mesh_q, mesh_theta, list
     del mask
     gc.collect()
     plt.close('all')
-    return I0_fit, q0_fit, xi_fit, fwhm, domain_size, I0_fit2, xi_fit2, theta_range
+    return I0_fit, q0_fit, xi_fit, fwhm, domain_size, I0_fit2, xi_fit2, theta_range, params, OP
 
 
 def get_smaller_peak_range(file_path, column_name="smaller peak q [A-1]"):
