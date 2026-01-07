@@ -1012,7 +1012,7 @@ def get_smaller_peak_range(file_path, column_name="smaller peak q [A-1]"):
 
 
 
-    def create_qtheta_mask_smectic_full(Q, angle, qmin, qmax, Nq, Ntheta):
+def create_qtheta_mask_smectic_full(Q, angle, qmin, qmax, Nq, Ntheta):
     """
     Create a mask array labeling each pixel in Q/angle space by its bin index,
     and a lookup table mapping bin index → (q_center, theta_center).
