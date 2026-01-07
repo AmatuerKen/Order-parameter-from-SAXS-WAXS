@@ -146,7 +146,7 @@ def remove_bad_or_beamstop_from_mask(mask, image, threshold=1e4, lower_threshold
 
 def show_overlay_mask_smectic(image, Q, angle,
                         qmin, qmax, Nq, Ntheta,
-                        vmin=None, vmax=None, initial_angle = 60/180*np.pi,
+                        vmin=None, vmax=None, initial_angle = 60/180*np.pi, xl = 400, yl = 575, xu = 650, yu = 800,
                         q_color='red', theta_color='blue'):
     """
     Overlay q and theta bin boundaries on the image using contours.
@@ -180,8 +180,8 @@ def show_overlay_mask_smectic(image, Q, angle,
     plt.title("Q–θ Bin Boundaries Overlay")
     plt.xlabel("X (pixels)")
     plt.ylabel("Y (pixels)")
-    plt.xlim([450, 600])
-    plt.ylim([625, 750])
+    plt.xlim([xl, xu])
+    plt.ylim([yl, yu])
     plt.tight_layout()
     plt.show()
 
@@ -421,9 +421,11 @@ def compute_baseline_intensity_smectic(Q, angle, image, theta_max, initial_angle
     candidates = [theta_plus, theta_minus]
     theta_bg = None
     for t in candidates:
-        t_wrapped = ((t + np.pi) % (2 * np.pi)) - np.pi
+        #t_wrapped = ((t + np.pi) % (2 * np.pi)) - np.pi
+        t_wrapped = ((t + 2 * np.pi) % (2 * np.pi))
         deg = np.degrees(t_wrapped)
-        if initial_angle <= deg <= (initial_angle + 180):
+        init_deg = np.degrees(initial_angle)
+        if init_deg <= deg <= (init_deg + 180):
             theta_bg = t_wrapped
             break
     if theta_bg is None:
@@ -1006,3 +1008,106 @@ def get_smaller_peak_range(file_path, column_name="smaller peak q [A-1]"):
     min_val = df[column_name].min()
     max_val = df[column_name].max()
     return min_val, max_val
+
+
+
+
+    def create_qtheta_mask_smectic_full(Q, angle, qmin, qmax, Nq, Ntheta):
+    """
+    Create a mask array labeling each pixel in Q/angle space by its bin index,
+    and a lookup table mapping bin index → (q_center, theta_center).
+
+    Returns:
+        mask       : 2D array of bin indices (NaN for out-of-bounds)
+        list_q     : 1D array of q-bin centers
+        list_theta : 1D array of theta-bin centers
+        bin_lookup : 2D array of shape (Nq*Ntheta, 2)
+        mesh_q     : 2D array of q-bin centers
+        mesh_theta : 2D array of theta-bin centers
+    """
+
+    angle = np.where(angle < 0, angle + 2*np.pi, angle)
+
+    # --- Q bins ---
+    q_edges = np.linspace(qmin, qmax, Nq + 1)
+    list_q = 0.5 * (q_edges[:-1] + q_edges[1:])  # bin centers
+
+    #initial_angle = 60
+    # --- Theta bins from -π to 0 ---
+    theta_edges = np.linspace(0, 2*np.pi, Ntheta + 1)
+    list_theta = 0.5 * (theta_edges[:-1] + theta_edges[1:])
+
+    # Digitize Q and theta
+    q_indices = np.digitize(Q, q_edges) - 1
+    theta_indices = np.digitize(angle, theta_edges) - 1
+
+    # Initialize mask
+    mask = np.full(Q.shape, np.nan)
+
+    # Valid bin locations
+    valid = (q_indices >= 0) & (q_indices < Nq) & (theta_indices >= 0) & (theta_indices < Ntheta)
+    bin_index = theta_indices * Nq + q_indices
+    mask[valid] = bin_index[valid]
+
+    # Create lookup table and mesh
+    bin_lookup = np.array([[q, t] for t in list_theta for q in list_q])  # (Nq*Ntheta, 2)
+    mesh_q, mesh_theta = np.meshgrid(list_q, list_theta, indexing='ij')
+
+    return mask, list_q, list_theta, bin_lookup, mesh_q, mesh_theta
+
+
+def show_overlay_mask_smectic_full(image, Q, angle,
+                        qmin, qmax, Nq, Ntheta,
+                        vmin=None, vmax=None,
+                        q_color='red', theta_color='blue'):
+    """
+    Overlay q and theta bin boundaries on the image using contours.
+    """
+
+    angle = np.where(angle < 0, angle + 2*np.pi, angle)
+    # Compute bin edges
+    q_edges = np.linspace(qmin, qmax, Nq + 1)
+    
+    list_theta = np.linspace(0, 2*np.pi, Ntheta+1)
+    list_theta = list_theta[1:]
+    binsize_theta = 2*np.pi/Ntheta
+    theta_edges = np.linspace(list_theta[0] - binsize_theta / 2, list_theta[-1] + binsize_theta / 2, Ntheta + 1)
+
+    # Set contrast
+    if vmin is None or vmax is None:
+        vmin, vmax = np.percentile(image, [1, 99])
+
+    # Plot image
+    plt.figure(figsize=(6, 6))
+    plt.imshow(image, cmap='gray', origin='lower', vmin=vmin, vmax=vmax)
+
+    # Overlay q-bin contours
+    for q in q_edges:
+        plt.contour(Q, levels=[q], colors=q_color, linewidths=0.5, linestyles='dotted')
+
+    # Overlay theta-bin contours
+    for theta in theta_edges:
+        plt.contour(angle, levels=[theta], colors=theta_color, linewidths=0.5, linestyles='dotted')
+
+    plt.title("Q–θ Bin Boundaries Overlay")
+    plt.xlabel("X (pixels)")
+    plt.ylabel("Y (pixels)")
+    plt.xlim([400, 650])
+    plt.ylim([575, 800])
+    plt.tight_layout()
+    plt.show()
+
+def get_Ivstheta_smectic_inner_ring(image, directory, mask_filename, mask_filename_full_innerring, initial_angle, baseline, average_qbin):
+
+    mask, list_q, list_theta, mesh_q, mesh_theta, _, _, _ = load_qtheta_mask(directory + mask_filename)
+    I_ave = calculate_average_intensity_within_mask(image, mask, mesh_q, mesh_theta)
+    _, q_idx_closest, _, _, _ = find_smectic_peak(I_ave, list_q, list_theta, initial_angle, flag_plot = False)
+
+
+
+    mask, list_q, list_theta, mesh_q, mesh_theta, _, _, _ = load_qtheta_mask(directory + mask_filename_full_innerring)
+    I_ave = calculate_average_intensity_within_mask(image, mask, mesh_q, mesh_theta)
+    
+    Itheta = np.nanmean(I_ave[q_idx_closest-average_qbin:q_idx_closest+average_qbin, :], axis = 0)
+
+    return Itheta - baseline, list_theta
