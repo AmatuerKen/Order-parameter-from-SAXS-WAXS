@@ -424,6 +424,7 @@ def compute_baseline_intensity_smectic(Q, angle, image, theta_max, initial_angle
         #t_wrapped = ((t + np.pi) % (2 * np.pi)) - np.pi
         t_wrapped = ((t + 2 * np.pi) % (2 * np.pi))
         deg = np.degrees(t_wrapped)
+        print(deg)
         init_deg = np.degrees(initial_angle)
         if init_deg <= deg <= (init_deg + 180):
             theta_bg = t_wrapped
