@@ -459,7 +459,7 @@ def compute_baseline_intensity_smectic(Q, angle, image, theta_max, initial_angle
         baseline = np.nanmean(image[region_mask])
     else:
         raise ValueError("No pixels found in baseline region.")
-    print(baseline)
+
     return baseline
 
 '''
@@ -656,24 +656,44 @@ def fit_peak(Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline):
 def fit_peak_3(Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline, shifted_Itheta_regularOP):
     
     popt, pcov = fit_lorentz_para(Iq_pixel - baseline, qvals, q_peak)
-    
+    perr = np.sqrt(np.diag(pcov))
+
     I0_fit, q0_fit, xi_fit = popt
+    I0_fit_err, q0_fit_err, xi_fit_err = perr
     fwhm = 2/xi_fit
     domain_size = np.abs(2*np.pi/fwhm)
-    
+
     popt, pcov = fit_lorentz_perp(shifted_theta, shifted_Itheta - baseline)
-    
+    perr = np.sqrt(np.diag(pcov))
+
     I0_fit2, xi_fit2 = popt
+    I0_fit2_err, xi_fit2_err = perr
     theta_range = 2/xi_fit2
-
+    
     initial_guess = np.ones(6)
-    params_opt, _ = curve_fit(Kratky_function, shifted_theta, shifted_Itheta_regularOP - baseline, p0=initial_guess)
 
+
+    y = shifted_Itheta_regularOP - baseline
+    x = shifted_theta
+
+    mask = np.isfinite(x) & np.isfinite(y)
+
+    x_clean = x[mask]
+    y_clean = y[mask]
+
+    params_opt, pcov = curve_fit(
+        Kratky_function,
+        x_clean,
+        y_clean,
+        p0=initial_guess
+    )
     # Store as 1D array
     params = np.array(params_opt)
+    perr = np.sqrt(np.diag(pcov))
+
     OP = order_parameters(params)
 
-    return I0_fit, q0_fit, xi_fit, fwhm, domain_size, I0_fit2, xi_fit2, theta_range, params, OP
+    return I0_fit, q0_fit, xi_fit, I0_fit_err, q0_fit_err, xi_fit_err, fwhm, domain_size, I0_fit2, xi_fit2, I0_fit2_err, xi_fit2_err, theta_range, params, perr, OP
 
 def save_smectic_plot(filename,
                       Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline,
@@ -973,7 +993,7 @@ def smectic_procedure(directory, filename, image, mask, mesh_q, mesh_theta, list
     baseline = compute_baseline_intensity_smectic(Q, angle, image, theta_peak, initial_angle, qmin, qmax, pixels=5, angle_width_deg=2.5, flag_plot = False)
     
     #I0_fit, q0_fit, xi_fit, fwhm, domain_size, I0_fit2, xi_fit2, theta_range = fit_peak(Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline)
-    I0_fit, q0_fit, xi_fit, fwhm, domain_size, I0_fit2, xi_fit2, theta_range, params, OP = fit_peak_3(Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline, shifted_Itheta_regularOP)
+    I0_fit, q0_fit, xi_fit, I0_fit_err, q0_fit_err, xi_fit_err, fwhm, domain_size, I0_fit2, xi_fit2, I0_fit2_err, xi_fit2_err, theta_range, params, perr, OP = fit_peak_3(Iq_pixel, qvals, q_peak, shifted_Itheta, shifted_theta, baseline, shifted_Itheta_regularOP)
     
     Nq = len(list_q)
     Ntheta = len(list_theta)
@@ -991,7 +1011,7 @@ def smectic_procedure(directory, filename, image, mask, mesh_q, mesh_theta, list
     del mask
     gc.collect()
     plt.close('all')
-    return I0_fit, q0_fit, xi_fit, fwhm, domain_size, I0_fit2, xi_fit2, theta_range, params, OP
+    return I0_fit, q0_fit, xi_fit, I0_fit_err, q0_fit_err, xi_fit_err, fwhm, domain_size, I0_fit2, xi_fit2, I0_fit2_err, xi_fit2_err, theta_range, params, perr, OP
 
 
 def get_smaller_peak_range(file_path, column_name="smaller peak q [A-1]"):
