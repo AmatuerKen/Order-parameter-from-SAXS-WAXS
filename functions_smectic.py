@@ -971,7 +971,7 @@ def calculate_average_intensity_within_mask_smectic(directory, filename, mask, m
 
     return Iqtheta
 
-def smectic_procedure(directory, filename, image, mask, mesh_q, mesh_theta, list_q, list_theta, Q, angle, qmin, qmax, initial_angle):
+def smectic_procedure(directory, filename, image, mask, mesh_q, mesh_theta, list_q, list_theta, Q, angle, qmin, qmax, initial_angle, q_width):
         
     I_ave = calculate_average_intensity_within_mask(image, mask, mesh_q, mesh_theta)
 
@@ -983,7 +983,6 @@ def smectic_procedure(directory, filename, image, mask, mesh_q, mesh_theta, list
 
     Itheta = np.nanmean(I_ave[q_idx_closest-1:q_idx_closest+1, :], axis = 0)
 
-    q_width = 5
     Itheta_regularOP = np.nanmean(I_ave[q_idx_closest-q_width:q_idx_closest+q_width, :], axis = 0)    
 
     shifted_theta, shifted_Itheta = shift_and_average_over_theta(list_theta, Itheta, theta_peak)
